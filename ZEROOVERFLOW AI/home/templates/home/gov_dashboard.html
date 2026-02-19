@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SWM Command Center | Govt. Administration</title>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- GLOBAL STYLES --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f1f5f9; /* Light Grey Background */
+            color: #333; 
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* --- HEADER SECTION --- */
+        .gov-header {
+            background-color: #0f172a; /* Navy Blue */
+            color: white;
+            padding: 0;
+            border-bottom: 4px solid #fbbf24; /* Gold Border */
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .header-top {
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .gov-emblem {
+            font-size: 2.5rem;
+            color: #fbbf24; /* Gold */
+        }
+
+        .brand-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            margin: 0;
+            color: #94a3b8; /* Grey Text */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- ADMIN PROFILE --- */
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+
+        .admin-name { font-weight: 700; font-size: 0.9rem; display: block; text-align: right; }
+        .admin-role { font-size: 0.7rem; color: #fbbf24; display: block; text-align: right; text-transform: uppercase; }
+
+        /* --- NAVIGATION TABS --- */
+        .command-bar {
+            background-color: #1e293b; /* Slightly lighter navy */
+            padding: 0 30px;
+        }
+
+        .nav-cmd {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-cmd:hover {
+            color: white;
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .nav-cmd.active {
+            color: white;
+            border-bottom: 3px solid #fbbf24; /* Gold Underline */
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* --- DASHBOARD CARDS --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 Columns */
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 5px solid transparent; /* Colored border on left */
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-right: 20px;
+        }
+
+        .stat-value { font-size: 2rem; font-weight: 800; color: #333; line-height: 1; }
+        .stat-label { font-size: 0.85rem; font-weight: 700; color: #666; text-transform: uppercase; margin-top: 5px; }
+
+        /* --- GENERAL CARD STYLES --- */
+        .card {
+            border: none;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #0f172a; /* Navy Blue */
+            color: white;
+            padding: 15px 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- ALERTS & LISTS --- */
+        .alert-card {
+            padding: 15px;
+            border-radius: 6px;
+            background: #fff;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 5px solid #ccc;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* --- TABLE STYLES --- */
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto; /* Scrollbar */
+            background: white;
+        }
+
+        .table { width: 100%; margin: 0; }
+        
+        .table thead th {
+            position: sticky; /* Sticky Header */
+            top: 0;
+            background-color: #0f172a; /* Navy Blue */
+            color: white;
+            padding: 15px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            z-index: 10;
+        }
+
+        .table tbody tr { border-bottom: 1px solid #eee; }
+        .table tbody tr:hover { background-color: #f8f9fa; }
+
+        /* --- MAP --- */
+        #gov-map { height: 600px; width: 100%; z-index: 1; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 992px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="gov-header">
+        <div class="header-top">
+            <div class="brand-section">
+                <i class="fas fa-building-columns gov-emblem"></i>
+                <div class="brand-text">
+                    <h1>ZeroOverflow <span style="color: #fbbf24;">Command</span></h1>
+                    <p>Dept. of Smart City Sanitation</p>
+                </div>
+            </div>
+            
+            <div class="admin-profile">
+                <div class="admin-info">
+                    <span class="admin-name">Administrator</span>
+                    <span class="admin-role">Secure Access <i class="fas fa-lock ms-1"></i></span>
+                </div>
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <div class="command-bar">
+            <ul class="nav nav-pills w-100" id="nav-tab" role="tablist" style="margin-bottom: -3px;">
+                <li class="nav-item">
+                    <button class="nav-cmd active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard">
+                        <i class="fas fa-chart-pie"></i> Overview
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-cmd" id="map-tab" data-bs-toggle="tab" data-bs-target="#map">
+                        <i class="fas fa-map-marked-alt"></i> Geospatial View
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-cmd" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics">
+                        <i class="fas fa-chart-line"></i> Analytics Report
+                    </button>
+                </li>
+                <li class="nav-item ms-auto">
+                    <button class="nav-cmd" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts">
+                        <i class="fas fa-bell"></i> Notifications 
+                        {% if pending_complaints.count > 0 %}
+                            <span class="badge bg-danger ms-2 rounded-pill">{{ pending_complaints.count }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- MAIN PAGE CONTENT -->
+    <main class="container-fluid px-5 py-4">
+        <div class="tab-content">
+            
+            <!-- 1. DASHBOARD OVERVIEW TAB -->
+            <div class="tab-pane fade show active" id="dashboard">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-0">System Status</h4>
+                        <small class="text-muted">Live monitoring of {{ total_count }} units across 5 operational zones.</small>
+                    </div>
+                    <span class="badge bg-success px-3 py-2">SYSTEM ONLINE</span>
+                </div>
+
+                <!-- 4 STATS CARDS -->
+                <div class="stats-grid">
+                    <!-- Total Bins (Blue) -->
+                    <div class="stat-card" style="border-left-color: #0f172a;">
+                        <div class="stat-icon" style="background-color: #0f172a;">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ total_count }}</div>
+                            <div class="stat-label">Total Units</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Safe Bins (Green) -->
+                    <div class="stat-card" style="border-left-color: #2e7d32;">
+                        <div class="stat-icon" style="background-color: #2e7d32;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ safe_count }}</div>
+                            <div class="stat-label">Operational</div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Bins (Orange) -->
+                    <div class="stat-card" style="border-left-color: #fd7e14;">
+                        <div class="stat-icon" style="background-color: #fd7e14;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ warning_count }}</div>
+                            <div class="stat-label">Warnings</div>
+                        </div>
+                    </div>
+
+                    <!-- Critical Bins (Red) -->
+                    <div class="stat-card" style="border-left-color: #d32f2f;">
+                        <div class="stat-icon" style="background-color: #d32f2f;">
+                            <i class="fas fa-radiation-alt"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ critical_count }}</div>
+                            <div class="stat-label">Critical</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- MAIN CHART -->
+                    <div class="col-lg-8">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <span><i class="fas fa-chart-bar me-2"></i>Zone Analysis (Top Critical)</span>
+                            </div>
+                            <div class="card-body">
+                                <div style="height: 350px;"><canvas id="overviewChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDEBAR: ALERTS -->
+                    <div class="col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header" style="background-color: #d32f2f;">
+                                <span><i class="fas fa-bell me-2"></i>Priority Alerts</span>
+                            </div>
+                            <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
+                                
+                                <!-- Loop Complaints -->
+                                {% for c in pending_complaints %}
+                                <div class="alert-card" style="border-left-color: #fd7e14; background-color: #fffdf0;">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-user-circle text-warning fs-4 me-2"></i>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">Citizen Report</h6>
+                                            <small class="text-muted">{{ c.location }}</small>
+                                        </div>
+                                    </div>
+                                    <p class="small mb-2 fst-italic">"{{ c.description }}"</p>
+                                    <a href="{% url 'update_status' c.id 'resolved' %}" class="btn btn-success btn-sm w-100">Mark Resolved</a>
+                                </div>
+                                {% endfor %}
+                                
+                                <!-- Loop Critical Bins -->
+                                {% for bin in critical_bins %}
+                                <div class="alert-card" style="border-left-color: #d32f2f; background-color: #fff5f5;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-exclamation-circle text-danger fs-4 me-2"></i>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">Critical Level</h6>
+                                            <div class="small">{{ bin.location }} - <span class="text-danger fw-bold">{{ bin.fill_level }}%</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if pending_complaints.count == 0 and critical_bins.count == 0 %}
+                                    <div class="text-center text-muted py-4"><p>No active alerts.</p></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- BIN TABLE -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <span>Recent Bin Status</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="binTableSearch" class="form-control form-control-sm" placeholder="Search Location...">
+                            <button class="btn btn-sm btn-outline-light" id="viewAllBtn">View All</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Location</th>
+                                        <th>Fill Level</th>
+                                        <th>Last Emptied</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bin-table-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. MAP VIEW TAB -->
+            <div class="tab-pane fade" id="map">
+                <div class="row">
+                    <div class="col-lg-9 p-0">
+                        <div class="card m-0" style="border-radius: 0;">
+                            <div id="gov-map"></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 bg-white border-start p-4">
+                        <h4 class="fw-bold mb-4 text-secondary">Map Command</h4>
+                        <label class="form-label fw-bold">Select Zone</label>
+                        <select class="form-select mb-4" id="cityFilter">
+                            <option value="all">Show All Zones</option>
+                            <option value="Noida">Noida Zone</option>
+                            <option value="Ghaziabad">Ghaziabad Zone</option>
+                            <option value="Janakpuri">Janakpuri Zone</option>
+                            <option value="Dwarka">Dwarka Zone</option>
+                            <option value="Gurugram">Gurugram Zone</option>
+                        </select>
+                        <div class="card p-3 bg-light border-0 mb-4">
+                            <h6 class="fw-bold mb-3">Legend</h6>
+                            <div class="d-flex align-items-center mb-2"><i class="fas fa-circle text-danger me-2"></i> Critical (>80%)</div>
+                            <div class="d-flex align-items-center mb-2"><i class="fas fa-circle text-warning me-2"></i> Warning (50-80%)</div>
+                            <div class="d-flex align-items-center"><i class="fas fa-circle text-success me-2"></i> Safe (<50%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ANALYTICS VIEW TAB -->
+            <div class="tab-pane fade" id="analytics">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold text-secondary mb-0">System Analytics</h2>
+                    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fas fa-download me-2"></i>Generate Report</button>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card p-3">
+                            <h5 class="fw-bold mb-3 text-secondary">Weekly Fill Level Trends</h5>
+                            <div style="height: 300px;"><canvas id="trendsChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card p-3">
+                            <h5 class="fw-bold mb-3 text-secondary">Collection Efficiency</h5>
+                            <div style="height: 300px;"><canvas id="efficiencyChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card p-3">
+                            <h5 class="fw-bold mb-3 text-secondary">Overflow Forecast (Next 24h)</h5>
+                            <div style="height: 300px;"><canvas id="predictionChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card p-3">
+                            <h5 class="fw-bold mb-3 text-secondary">Average Fill Level by Zone</h5>
+                            <div style="height: 300px;"><canvas id="locationChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. TASK & INCIDENT MANAGEMENT TAB -->
+            <div class="tab-pane fade" id="alerts">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold text-secondary mb-0">Task & Incident Management</h2>
+                    <button class="btn btn-outline-secondary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                    </button>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4"><div class="card p-3 border-start border-warning border-5"><h5 class="text-muted">Pending Tasks</h5><h2 class="text-warning fw-bold">{{ pending_complaints.count }}</h2></div></div>
+                    <div class="col-md-4"><div class="card p-3 border-start border-info border-5"><h5 class="text-muted">In Progress</h5><h2 class="text-info fw-bold">{{ progress_count }}</h2></div></div>
+                    <div class="col-md-4"><div class="card p-3 border-start border-success border-5"><h5 class="text-muted">Resolved</h5><h2 class="text-success fw-bold">{{ resolved_count }}</h2></div></div>
+                </div>
+
+                <div class="card p-0">
+                    <div class="card-header"><i class="fas fa-tasks me-2"></i> Active Incident Registry</div>
+                    <div class="card-body p-0">
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr><th>ID</th><th>Type</th><th>Location</th><th>Progress</th><th class="text-end pe-4">Update</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in recent_complaints %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold">#{{ c.id }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ c.get_complaint_type_display }}</span></td>
+                                        <td><div class="fw-bold">{{ c.location }}</div><small class="text-muted">"{{ c.description|truncatechars:30 }}"</small></td>
+                                        <td>
+                                            <span class="badge {% if c.progress_percentage == 100 %}bg-success{% elif c.progress_percentage >= 40 %}bg-info{% else %}bg-warning text-dark{% endif %} me-2">{{ c.progress_percentage }}%</span>
+                                        </td>
+                                        <td class="text-end pe-4" style="width: 250px;">
+                                            {% if c.progress_percentage < 100 %}
+                                                <form method="POST" action="{% url 'update_status' c.id 'custom' %}" class="d-flex align-items-center justify-content-end">
+                                                    {% csrf_token %}
+                                                    <input type="range" class="form-range me-2" name="progress" min="0" max="100" value="{{ c.progress_percentage }}" style="width: 100px;">
+                                                    <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save"></i></button>
+                                                </form>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-success w-100 disabled"><i class="fas fa-check-circle"></i> Done</button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- 1. DATA INJECTION ---
+        const cityCoords = {
+            'Noida': {lat: 28.5355, lng: 77.3910}, 'Ghaziabad': {lat: 28.6692, lng: 77.4538},
+            'Janakpuri': {lat: 28.6219, lng: 77.0878}, 'Dwarka': {lat: 28.5921, lng: 77.0460},
+            'Gurugram': {lat: 28.4595, lng: 77.0266}
+        };
+
+        const binData = [
+            {% for bin in bins %}
+            {
+                visual_id: {{ forloop.counter }},
+                id: {{ bin.id }},
+                location: "{{ bin.location }}",
+                fillLevel: {{ bin.fill_level }},
+                status: "{{ bin.status }}",
+                lastEmptied: "{{ bin.last_emptied|timesince }} ago"
+            },
+            {% endfor %}
+        ];
+
+        binData.forEach(bin => {
+            let baseLat = 28.6139; let baseLng = 77.2090; 
+            if(bin.location.includes('Noida')) { baseLat = cityCoords['Noida'].lat; baseLng = cityCoords['Noida'].lng; }
+            else if(bin.location.includes('Ghaziabad')) { baseLat = cityCoords['Ghaziabad'].lat; baseLng = cityCoords['Ghaziabad'].lng; }
+            else if(bin.location.includes('Janakpuri')) { baseLat = cityCoords['Janakpuri'].lat; baseLng = cityCoords['Janakpuri'].lng; }
+            else if(bin.location.includes('Dwarka')) { baseLat = cityCoords['Dwarka'].lat; baseLng = cityCoords['Dwarka'].lng; }
+            else if(bin.location.includes('Gurugram')) { baseLat = cityCoords['Gurugram'].lat; baseLng = cityCoords['Gurugram'].lng; }
+            bin.lat = baseLat + (Math.random() * 0.04) - 0.02;
+            bin.lng = baseLng + (Math.random() * 0.04) - 0.02;
+        });
+
+        // --- 2. MAP LOGIC ---
+        var map = null; var markersLayer = new L.LayerGroup(); 
+        function initMap() {
+            if (map) return;
+            map = L.map('gov-map').setView([28.6139, 77.2090], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            markersLayer.addTo(map);
+            updateMapMarkers('all');
+        }
+        function updateMapMarkers(filterCity) {
+            markersLayer.clearLayers(); 
+            binData.forEach(bin => {
+                if (filterCity === 'all' || bin.location.includes(filterCity)) {
+                    var color = bin.status === "critical" ? "red" : bin.status === "warning" ? "orange" : "green";
+                    var marker = L.circleMarker([bin.lat, bin.lng], { color: color, fillColor: color, fillOpacity: 0.8, radius: 8 }).bindPopup(`<b>${bin.location}</b><br>Fill: ${bin.fillLevel}%`);
+                    markersLayer.addLayer(marker);
+                }
+            });
+            if (filterCity !== 'all' && cityCoords[filterCity]) map.setView([cityCoords[filterCity].lat, cityCoords[filterCity].lng], 13);
+            else map.setView([28.6139, 77.2090], 10);
+        }
+        document.getElementById('map-tab').addEventListener('shown.bs.tab', () => { initMap(); setTimeout(() => { map.invalidateSize(); }, 100); });
+        document.getElementById('cityFilter').addEventListener('change', function() { updateMapMarkers(this.value); });
+
+        // --- 3. CHART & TABLE ---
+        let isExpanded = false;
+        let searchQuery = "";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderBinTable();
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            const criticalBins = binData.filter(b => b.fillLevel > 50).slice(0, 15);
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: criticalBins.map(b => b.location.split('-')[1] || b.location),
+                    datasets: [{ label: 'Fill Level (%)', data: criticalBins.map(b => b.fillLevel), backgroundColor: criticalBins.map(b => b.fillLevel > 80 ? '#d32f2f' : '#fd7e14'), borderRadius: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+        });
+
+        function renderBinTable() {
+            const tbody = document.getElementById('bin-table-body');
+            tbody.innerHTML = '';
+            
+            const filteredData = binData.filter(bin => 
+                bin.location.toLowerCase().includes(searchQuery) || 
+                bin.visual_id.toString().includes(searchQuery)
+            );
+
+            const binsToShow = isExpanded ? filteredData : filteredData.slice(0, 10);
+
+            binsToShow.forEach(bin => {
+                let badgeClass = bin.status === 'safe' ? 'safe' : bin.status === 'warning' ? 'warning' : 'critical';
+                // Simplified color logic
+                let badgeStyle = badgeClass === 'safe' ? 'background: #d1fae5; color: #065f46;' : badgeClass === 'warning' ? 'background: #fef3c7; color: #92400e;' : 'background: #fee2e2; color: #991b1b;';
+                
+                tbody.innerHTML += `<tr>
+                    <td><strong>#${bin.visual_id}</strong></td>
+                    <td>${bin.location}</td>
+                    <td>${bin.fillLevel}%</td>
+                    <td>${bin.lastEmptied}</td>
+                    <td><span class="status-badge" style="${badgeStyle}">${bin.status}</span></td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('viewAllBtn').addEventListener('click', function() {
+            isExpanded = !isExpanded;
+            this.textContent = isExpanded ? "Show Less" : "View All";
+            renderBinTable();
+        });
+
+        document.getElementById('binTableSearch').addEventListener('keyup', function(e) {
+            searchQuery = e.target.value.toLowerCase();
+            renderBinTable();
+        });
+
+        // --- 4. ANALYTICS ---
+        document.getElementById('analytics-tab').addEventListener('shown.bs.tab', function () {
+            new Chart(document.getElementById('efficiencyChart'), { type: 'doughnut', data: { labels: ['Efficient', 'Critical'], datasets: [{ data: [{{ safe_count }}, {{ critical_count }}], backgroundColor: ['#2e7d32', '#d32f2f'] }] }, options: { plugins: { legend: { position: 'bottom' } } } });
+            
+            const risk4h = binData.filter(b => b.fillLevel >= 90).length;
+            const risk8h = binData.filter(b => b.fillLevel >= 75 && b.fillLevel < 90).length;
+            const risk12h = binData.filter(b => b.fillLevel >= 60 && b.fillLevel < 75).length;
+            const risk24h = binData.filter(b => b.fillLevel >= 50 && b.fillLevel < 60).length;
+            new Chart(document.getElementById('predictionChart'), { type: 'bar', data: { labels: ['+4h', '+8h', '+12h', '+24h'], datasets: [{ label: 'Predicted Overflows', data: [risk4h, risk8h, risk12h, risk24h], backgroundColor: '#0f172a' }] } });
+
+            const zones = ['Noida', 'Ghaziabad', 'Janakpuri', 'Dwarka', 'Gurugram'];
+            const zoneData = zones.map(z => {
+                const cityBins = binData.filter(b => b.location.includes(z));
+                if (cityBins.length === 0) return 0;
+                return Math.round(cityBins.reduce((sum, b) => sum + b.fillLevel, 0) / cityBins.length);
+            });
+            new Chart(document.getElementById('locationChart'), { type: 'bar', data: { labels: zones, datasets: [{ label: 'Avg Zone Fill %', data: zoneData, backgroundColor: zoneData.map(v => v>70?'#d32f2f':v>50?'#fd7e14':'#2e7d32') }] }, options: { scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } } });
+
+            new Chart(document.getElementById('trendsChart'), { type: 'line', data: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Today'], datasets: [{ label: 'Avg Fill Level', data: [45,52,48,61,58,65,{{ total_count }}], borderColor: '#2a9d8f', fill: true }] }, options: { responsive: true, maintainAspectRatio: false } });
+        });
+    </script>
+</body>
+</html>

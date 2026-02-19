@@ -1,0 +1,152 @@
+<!-- home/templates/home/complaint.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Complaint - ZeroOverflow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .complaint-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        .required-field::after {
+            content: " *";
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="complaint-form">
+                    <h1 class="text-center mb-4">📝 Submit a Complaint</h1>
+                    
+                    {% if success %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Success!</strong> Complaint submitted successfully. 
+                        <br>Complaint ID: <strong>{{ complaint_id }}</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="complaint_type" class="form-label required-field">Complaint Type</label>
+                            <select class="form-select" id="complaint_type" name="complaint_type" required>
+                                <option value="">-- Select complaint type --</option>
+                                <option value="garbage">🚮 Garbage Not Collected</option>
+                                <option value="overflow">⚠️ Bin Overflowing</option>
+                                <option value="missed">📅 Missed Collection Schedule</option>
+                                <option value="damage">🔧 Damaged/Missing Bin</option>
+                                <option value="smell">👃 Bad Odor/Sanitation Issue</option>
+                                <option value="animals">🐭 Animal/Rodent Problem</option>
+                                <option value="other">❓ Other Issue</option>
+                            </select>
+                            <div class="form-text">Please select the most relevant category</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label required-field">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="Street address, landmark, or area" required>
+                            <div class="form-text">Be as specific as possible about the location</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Your Name</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       placeholder="Optional - will remain anonymous if blank">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contact" class="form-label">Contact Information</label>
+                                <input type="text" class="form-control" id="contact" name="contact" 
+                                       placeholder="Email or phone (optional)">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label required-field">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="5" placeholder="Please describe the issue in detail..." 
+                                      required></textarea>
+                            <div class="form-text">
+                                Include details like: How long has this been happening? 
+                                How serious is it? Any specific observations?
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="urgency" class="form-label">Urgency Level</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="urgency" id="urgency_low" value="low" checked>
+                                <label class="form-check-label" for="urgency_low">
+                                    🟢 Low - Minor inconvenience
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="urgency" id="urgency_medium" value="medium">
+                                <label class="form-check-label" for="urgency_medium">
+                                    🟡 Medium - Needs attention soon
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="urgency" id="urgency_high" value="high">
+                                <label class="form-check-label" for="urgency_high">
+                                    🔴 High - Immediate attention required
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6>📋 What happens after submission?</h6>
+                        <ul class="mb-0">
+                            <li>Your complaint will be assigned a unique ID</li>
+                            <li>It will be reviewed by our team</li>
+                            <li>You'll receive updates on the status</li>
+                            <li>The issue will be addressed by the appropriate department</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-resize textarea
+        document.getElementById('description').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        // Show character count
+        const description = document.getElementById('description');
+        const charCount = document.createElement('div');
+        charCount.className = 'form-text text-end';
+        charCount.innerHTML = 'Characters: <span id="charCount">0</span>';
+        description.parentNode.appendChild(charCount);
+        
+        description.addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+    </script>
+</body>
+</html>

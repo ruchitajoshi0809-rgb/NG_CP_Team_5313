@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ZeroOverflow | Citizen Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- AOS Animation -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary: #2a9d8f; --primary-dark: #1d6f65;
+            --secondary: #264653; --danger: #e76f51;
+            --warning: #e9c46a; --success: #2a9d8f;
+        }
+        body { background: linear-gradient(to right, #f4f6f9, #eef3f8); font-family: 'Segoe UI', sans-serif; }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1a3340 50%, var(--primary-dark) 100%);
+            color: white; padding: 50px 30px; border-radius: 0 0 40px 40px; margin-bottom: 40px;
+        }
+        
+        /* CARDS */
+        .stat-card {
+            background: white; border-radius: 16px; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--secondary); }
+        
+        /* CITY SECTIONS */
+        .city-section-container {
+            background: white; border-radius: 20px; padding: 20px;
+            margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .city-header { cursor: pointer; padding: 10px; border-radius: 10px; transition: background 0.3s; }
+        .city-header:hover { background: #f8f9fa; }
+
+        /* BIN CARDS */
+        .bin-card {
+            background: #fff; border-radius: 20px; padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08); position: relative; border: 1px solid #eee;
+        }
+        .status-critical { border-left: 5px solid var(--danger); }
+        .status-clean { border-left: 5px solid var(--success); }
+        .status-warning { border-left: 5px solid var(--warning); }
+        .icon-big { font-size: 40px; }
+        .fill-bar { height: 8px; border-radius: 10px; background: #eee; margin: 12px 0; overflow: hidden; }
+        .fill-bar-inner { height: 100%; border-radius: 10px; }
+
+        /* MAP */
+        #map { height: 400px; width: 100%; border-radius: 20px; z-index: 1; }
+
+        .complaint-form-card {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-top: 5px solid var(--warning);
+        }
+        .section-title { color: var(--secondary); font-weight: 700; border-left: 5px solid var(--primary); padding-left: 15px; margin-bottom: 25px; }
+        .action-btn { border-radius: 30px; }
+    </style>
+</head>
+
+<body>
+
+<!-- ALERT MESSAGE BLOCK -->
+{% if messages %}
+    <div class="container mt-3 fixed-top" style="z-index: 9999; max-width: 600px;">
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show shadow-lg border-0" role="alert">
+                <i class="fas fa-check-circle me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- HERO HEADER -->
+<div class="hero text-center">
+    <h1><i class="fas fa-leaf"></i> ZEROOVERFLOW</h1>
+    <p>Regional Waste Monitoring Portal</p>
+    <p><em>“A cleaner city begins with aware citizens.”</em></p>
+
+    <!-- BUTTONS -->
+    <div class="mt-4">
+        <a href="#raiseComplaint" class="btn btn-warning action-btn me-2">
+            <i class="fas fa-pen"></i> Raise a Complaint
+        </a>
+        <a href="{% url 'login' %}" class="btn btn-outline-light action-btn">
+            <i class="fas fa-user-shield me-2"></i> Admin Login
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="d-flex justify-content-center mt-4">
+        <div style="width: 100%; max-width: 600px; position: relative;">
+            <input type="text" id="citySearchInput" class="form-control" style="border-radius: 50px; padding: 15px 25px;" placeholder="Search for your City (e.g. Noida, Dwarka)...">
+            <i class="fas fa-search position-absolute text-muted" style="right: 25px; top: 18px;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <!-- STATS -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3"><div class="stat-card"><div class="stat-value">{{ total_bins }}</div><div class="text-muted">Total Bins</div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="stat-value text-success">{{ safe_bins }}</div><div class="text-muted">Safe</div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="stat-value text-warning">{{ warning_bins }}</div><div class="text-muted">Warning</div></div></div>
+        <div class="col-md-3"><div class="stat-card"><div class="stat-value text-danger">{{ critical_bins }}</div><div class="text-muted">Critical</div></div></div>
+    </div>
+
+    <!-- CITY GROUPS -->
+    <h3 class="section-title"><i class="fas fa-map-marked-alt me-2"></i>Regions & Bins</h3>
+    <div id="cityContainer">
+        {% for city_name, city_bins in city_groups.items %}
+        <div class="city-section-container" data-city-name="{{ city_name|lower }}">
+            <div class="d-flex justify-content-between align-items-center city-header" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.5rem;"><i class="fas fa-city"></i></div>
+                    <div><h3 class="mb-0 fw-bold text-dark">{{ city_name }}</h3><small class="text-muted">{{ city_bins|length }} Bins Monitored</small></div>
+                </div>
+                <i class="fas fa-chevron-down text-muted"></i>
+            </div>
+            <div class="collapse mt-4" id="collapse{{ forloop.counter }}">
+                <div class="mb-4"><input type="text" class="form-control" style="border-radius: 20px; background: #f1f3f5;" placeholder="Search specific location in {{ city_name }}..." onkeyup="filterInnerBins(this)"></div>
+                <div class="row g-4">
+                    {% for bin in city_bins %}
+                    <div class="col-md-4 inner-bin-card" data-bin-loc="{{ bin.location|lower }}">
+                        <div class="bin-card {% if bin.fill_level > 80 %}status-critical{% elif bin.status == 'safe' %}status-safe{% elif bin.status == 'warning' %}status-warning{% else %}status-clean{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div><h5 class="mt-2 mb-0">{{ bin.location }}</h5><small class="text-muted fst-italic bin-time-estimate" data-fill="{{ bin.fill_level }}">Calculating...</small></div>
+                                {% if bin.fill_level > 80 %}<i class="fas fa-exclamation-triangle text-danger fs-3"></i>{% else %}<i class="fas fa-check-circle text-success fs-3"></i>{% endif %}
+                            </div>
+                            <div class="d-flex justify-content-between mt-3"><small>Fill Level</small><strong>{{ bin.fill_level }}%</strong></div>
+                            <div class="fill-bar"><div class="fill-bar-inner" style="width: {{ bin.fill_level }}%; background-color: {% if bin.fill_level > 80 %}var(--danger){% elif bin.status == 'warning' %}var(--warning){% else %}var(--success){% endif %};"></div></div>
+                            {% if bin.fill_level > 80 %}
+                                <button class="btn btn-danger w-100 action-btn mt-3" onclick="sendAlert('{{ bin.location }}')"><i class="fas fa-bell me-2"></i>Alert Govt</button>
+                            {% else %}<div class="text-center mt-3 text-success small"><i class="fas fa-shield-alt"></i> Status OK</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- MAP -->
+    <h3 class="section-title mt-5"><i class="fas fa-globe-asia me-2"></i>Live Map View</h3>
+    <div id="map"></div>
+
+    <!-- 👇 TRACKING SECTION: UPGRADED WITH PROGRESS BARS 👇 -->
+    <h3 class="section-title mt-5"><i class="fas fa-tasks me-2"></i>Track Your Complaints</h3>
+    <div class="table-responsive bg-white rounded shadow-sm p-3">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>ID</th><th>Issue</th><th>Location</th><th>Date</th><th style="width: 30%;">Task Progress</th></tr></thead>
+            <tbody>
+    {% for c in complaints %}
+    <tr>
+        <td><strong>#{{ c.id }}</strong></td>
+        <td>{{ c.get_complaint_type_display }}</td>
+        <td>{{ c.location }}</td>
+        <td>{{ c.created_at|date:"M d, Y" }}</td>
+        <td>
+            <!-- DYNAMIC PROGRESS BAR & TEXT -->
+            <div class="d-flex justify-content-between mb-1">
+                <span class="fw-bold small text-primary">
+                    {% if c.progress_percentage == 100 %}
+                        <i class="fas fa-check-circle"></i> Completed
+                    {% elif c.progress_percentage >= 90 %}
+                        <i class="fas fa-hourglass-end"></i> Almost Completed
+                    {% elif c.progress_percentage >= 40 %}
+                        <i class="fas fa-tools"></i> Performing Task
+                    {% else %}
+                        <i class="fas fa-clipboard-check"></i> Complaint Acknowledged
+                    {% endif %}
+                </span>
+                <small class="text-muted fw-bold">{{ c.progress_percentage }}%</small>
+            </div>
+            
+            <div class="progress" style="height: 10px; border-radius: 5px;">
+                <div class="progress-bar 
+                    {% if c.progress_percentage == 100 %}bg-success
+                    {% elif c.progress_percentage >= 90 %}bg-info
+                    {% elif c.progress_percentage >= 40 %}bg-primary progress-bar-striped progress-bar-animated
+                    {% else %}bg-warning text-dark{% endif %}" 
+                    role="progressbar" 
+                    style="width: {{ c.progress_percentage }}%;">
+                </div>
+            </div>
+        </td>
+    </tr>
+              {% empty %}<tr><td colspan="5" class="text-center py-4">No complaints raised yet.</td></tr>{% endfor %}
+           </tbody>
+        </table>
+    </div>
+    <!-- 👆 END TRACKING SECTION 👆 -->
+
+    <!-- RAISE COMPLAINT FORM -->
+    <h3 class="section-title mt-5"><i class="fas fa-pen-to-square me-2"></i>Raise a New Complaint</h3>
+    <div class="complaint-form-card" id="raiseComplaint">
+        <form method="POST" action="{% url 'complaint' %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Issue Type</label>
+                    <select class="form-select" name="complaint_type" required>
+                        <option value="overflow">⚠️ Bin Overflowing</option>
+                        <option value="garbage">🚮 Garbage Not Collected</option>
+                        <option value="smell">👃 Bad Odor</option>
+                        <option value="other">❓ Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Select Bin Location</label>
+                    <input class="form-control" list="binOptions" name="location" placeholder="Type to search (e.g. Noida Sector 10)..." required autocomplete="off">
+                    <datalist id="binOptions">
+                        {% for bin in all_bins %}<option value="{{ bin.location }}">{% endfor %}
+                    </datalist>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea class="form-control" name="description" rows="3" placeholder="Describe the problem..." required></textarea>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-warning btn-lg action-btn px-5"><i class="fas fa-paper-plane me-2"></i> Submit Report</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    AOS.init();
+    
+    // --- 1. SEARCH LOGIC ---
+    document.getElementById('citySearchInput').addEventListener('keyup', function() {
+        let query = this.value.toLowerCase();
+        document.querySelectorAll('.city-section-container').forEach(sec => {
+            sec.style.display = sec.getAttribute('data-city-name').includes(query) ? 'block' : 'none';
+        });
+    });
+
+    function filterInnerBins(input) {
+        let query = input.value.toLowerCase();
+        input.closest('.collapse').querySelectorAll('.inner-bin-card').forEach(card => {
+            card.style.display = card.getAttribute('data-bin-loc').includes(query) ? 'block' : 'none';
+        });
+    }
+
+    function sendAlert(location) { alert("🚨 Alert sent to Govt for " + location); }
+
+    // --- 2. TIME ESTIMATION LOGIC ---
+    document.querySelectorAll('.bin-time-estimate').forEach(el => {
+        let fill = parseInt(el.getAttribute('data-fill'));
+        if(fill >= 100) {
+            el.innerHTML = "<span class='text-danger fw-bold'>Currently Overflowing!</span>";
+        } else {
+            let daysLeft = Math.round((100 - fill) / 5);
+            if(daysLeft < 1) daysLeft = "less than 1";
+            el.innerHTML = `Est. Full in: <strong>${daysLeft} Days</strong>`;
+        }
+    });
+
+    // --- 3. MAP LOGIC ---
+    var map = L.map('map').setView([28.5355, 77.2090], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const cityCoords = {
+        'Noida': {lat: 28.5355, lng: 77.3910}, 'Ghaziabad': {lat: 28.6692, lng: 77.4538},
+        'Janakpuri': {lat: 28.6219, lng: 77.0878}, 'Dwarka': {lat: 28.5921, lng: 77.0460},
+        'Gurugram': {lat: 28.4595, lng: 77.0266}
+    };
+
+    {% for bin in all_bins %}
+        var baseLat = 28.6139; var baseLng = 77.2090; var loc = "{{ bin.location }}";
+        if(loc.includes('Noida')) { baseLat = cityCoords['Noida'].lat; baseLng = cityCoords['Noida'].lng; }
+        else if(loc.includes('Ghaziabad')) { baseLat = cityCoords['Ghaziabad'].lat; baseLng = cityCoords['Ghaziabad'].lng; }
+        else if(loc.includes('Janakpuri')) { baseLat = cityCoords['Janakpuri'].lat; baseLng = cityCoords['Janakpuri'].lng; }
+        else if(loc.includes('Dwarka')) { baseLat = cityCoords['Dwarka'].lat; baseLng = cityCoords['Dwarka'].lng; }
+        else if(loc.includes('Gurugram')) { baseLat = cityCoords['Gurugram'].lat; baseLng = cityCoords['Gurugram'].lng; }
+
+        var lat = baseLat + (Math.random() * 0.04) - 0.02;
+        var lng = baseLng + (Math.random() * 0.04) - 0.02;
+        var color = "{{ bin.status }}" == "critical" ? "red" : "{{ bin.status }}" == "warning" ? "orange" : "green";
+
+        L.circleMarker([lat, lng], { color: color, radius: 8, fillOpacity: 0.8 }).addTo(map)
+         .bindPopup("<b>{{ bin.location }}</b><br>Fill: {{ bin.fill_level }}%");
+    {% endfor %}
+</script>
+
+</body>
+</html>
